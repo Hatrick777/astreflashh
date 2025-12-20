@@ -11,7 +11,7 @@ import {
   BadgeCheck,
   Loader2
 } from 'lucide-react';
-import { Token } from './types';
+import { Token } from './types.ts';
 
 const TOKENS: Token[] = [
   {
@@ -54,7 +54,8 @@ const App: React.FC = () => {
   const isDragging = useRef(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (window.scrollY === 0) {
+    // Only allow pull to refresh if we are at the top
+    if (window.scrollY <= 0) {
       startY.current = e.touches[0].pageY;
       isDragging.current = true;
     }
@@ -67,10 +68,14 @@ const App: React.FC = () => {
     const diff = currentY - startY.current;
 
     if (diff > 0) {
-      const easedDiff = Math.pow(diff, 0.8) * 1.5;
+      // iPhone-style rubber banding (logarithmic resistance)
+      // Safety check for Math.pow with potential negative diff (though checked by if)
+      const easedDiff = Math.pow(Math.max(0, diff), 0.8) * 1.5;
       setPullDistance(easedDiff);
-      if (diff > 10) {
-        if (e.cancelable) e.preventDefault();
+      
+      // Stop browser default pull-to-refresh if we are handling it
+      if (diff > 5 && e.cancelable) {
+        e.preventDefault();
       }
     }
   };
@@ -90,8 +95,12 @@ const App: React.FC = () => {
     setIsRefreshing(true);
     setPullDistance(60);
 
-    if ('vibrate' in navigator) {
-      navigator.vibrate(10);
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(10);
+      } catch (e) {
+        // Vibrate might fail in some contexts
+      }
     }
 
     setTimeout(() => {
@@ -106,13 +115,13 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen w-full bg-[#080808] text-white flex flex-col max-w-md mx-auto relative overflow-x-hidden select-none"
+      className="min-h-screen w-full bg-[#000000] text-white flex flex-col max-w-md mx-auto relative overflow-x-hidden select-none"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ fontFamily: "'SF Pro Display', sans-serif" }}
+      style={{ fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
-      {/* Pull-to-Refresh Indicator */}
+      {/* Pull-to-Refresh Indicator (iPhone style) */}
       <div 
         className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-50 transition-all duration-300 ease-out"
         style={{ 
@@ -123,7 +132,7 @@ const App: React.FC = () => {
         }}
       >
         <div 
-          className="bg-white/10 backdrop-blur-md p-2.5 rounded-full border border-white/10 shadow-2xl"
+          className="bg-[#1c1c1c]/80 backdrop-blur-md p-2.5 rounded-full border border-white/10 shadow-2xl"
           style={{ transform: `scale(${scale})` }}
         >
           {isRefreshing ? (
@@ -148,6 +157,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      {/* Main Content Scrollable Area */}
       <div 
         className="flex-1 flex flex-col transition-transform duration-300 ease-out"
         style={{ transform: `translateY(${isRefreshing ? 60 : pullDistance}px)` }}
@@ -182,7 +192,7 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        {/* Action Buttons */}
+        {/* Action Buttons (Strict Match to Reference) */}
         <section className="px-5 flex gap-3 mb-10">
           <ActionButton 
             label="Receive" 
@@ -233,7 +243,7 @@ const App: React.FC = () => {
           />
         </section>
 
-        {/* Perps */}
+        {/* Perps Section */}
         <section className="px-5 mb-10">
           <h2 className="text-[18px] font-semibold flex items-center gap-1 mb-4">Perps <ChevronRight size={18} className="text-[#666666] mt-0.5" /></h2>
           <div className="bg-[#1c1c1c] rounded-[24px] p-5 flex items-center gap-4 cursor-pointer hover:bg-[#252525] transition-colors">
@@ -251,7 +261,7 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        {/* Tokens */}
+        {/* Tokens Section */}
         <section className="px-5 pb-32">
           <h2 className="text-[18px] font-semibold flex items-center gap-1 mb-4">Tokens <ChevronRight size={18} className="text-[#666666] mt-0.5" /></h2>
           <div className="flex flex-col gap-3.5">
@@ -293,7 +303,7 @@ const App: React.FC = () => {
         </section>
       </div>
 
-      {/* Navigation */}
+      {/* Persistent Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black/60 backdrop-blur-[32px] border-t border-white/5 px-8 py-5 flex items-center justify-between z-[60]">
         <button className="text-[#ff4dad] relative transition-transform active:scale-90">
           <Home size={28} strokeWidth={2.5} />
