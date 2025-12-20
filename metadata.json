@@ -1,0 +1,7 @@
+{
+  "name": "Phantom-Style Crypto Wallet",
+  "description": "A high-fidelity clone of a modern mobile crypto wallet interface, featuring real-time-like token tracking and Gemini-powered market insights.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
